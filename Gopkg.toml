@@ -44,3 +44,7 @@
 [[constraint]]
   name = "go.uber.org/zap"
   version = "1.10.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/dimiro1/banner"

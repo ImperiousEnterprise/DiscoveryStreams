@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	_ "github.com/dimiro1/banner/autoload"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"go.mongodb.org/mongo-driver/bson"

@@ -19,9 +19,13 @@ import (
 var sugar *zap.SugaredLogger
 
 func TestMain(m *testing.M) {
-	os.Setenv("MONGO_URI", "mongodb://localhost:5002")
-	os.Setenv("MONGO_NAME", "reach-engine")
-	os.Setenv("ADS_URL", "https://coding-challenge.dsc.tv/v1/ads/")
+	dockerEnabled := os.Getenv("DOCKER_TEST")
+	fmt.Println(dockerEnabled)
+	if dockerEnabled != "true" {
+		os.Setenv("MONGO_URI", "mongodb://localhost:5002")
+		os.Setenv("MONGO_NAME", "reach-engine")
+		os.Setenv("ADS_URL", "https://coding-challenge.dsc.tv/v1/ads/")
+	}
 	logger, _ := zap.NewProduction()
 	defer logger.Sync() // flushes buffer, if any
 	sugar = logger.Sugar()
