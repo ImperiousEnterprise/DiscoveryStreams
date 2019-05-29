@@ -1,0 +1,44 @@
+version: '3.7'
+
+networks:
+  prod-network:
+    driver: bridge
+
+services:
+  api:
+    container_name: api
+    build:
+      context: .
+      dockerfile: ./Dockerfile.go.prod
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_NAME=discovery
+      - ADS_URL=https://coding-challenge.dsc.tv/v1/ads/
+      - PORT=7000
+    ports:
+      - "7000:7000"
+    depends_on:
+      - mongodb
+    networks:
+      - prod-network
+  mongodb:
+    container_name: mongodb
+    build:
+      context: ./mongo
+      dockerfile: Dockerfile
+    ports:
+      - "5001:27017"
+    expose:
+      - "27017"
+    restart: on-failure
+    networks:
+      - prod-network
+    volumes:
+      - mongo_prod:/data/db
+
+
+volumes:
+  mongo_prod:
+    name: mongo_prod
+  api_prod:
+    name: api_data

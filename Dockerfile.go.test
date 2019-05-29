@@ -3,10 +3,14 @@ FROM golang:1.12-alpine
 # Install git
 RUN set -ex; \
     apk update; \
-    apk add --no-cache git
+    apk add --no-cache git curl
 
 # Set working directory
 WORKDIR /go/src/github.com/discoveryStream/
-
+COPY main.go main.go
+COPY stream_test.go stream_test.go
+COPY Gopkg.toml Gopkg.toml
+COPY banner.txt banner.txt
+RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh && dep ensure
 # Run tests
 CMD CGO_ENABLED=0 go test -v ./...

@@ -12,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	"log"
+	"go.uber.org/zap/zapcore"
 	"net/http"
 	"os"
 	"strings"
@@ -34,33 +34,52 @@ type Stream struct {
 }
 
 type StreamController struct {
-	DB     *mongo.Client
-	DBname string
-	logger *zap.SugaredLogger
+	streamCollection *mongo.Collection
+	logger           *zap.Logger
 }
 
 func main() {
+	//Logger Config
+	cfg := zap.Config{
+		Encoding:         "json",
+		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+		EncoderConfig: zapcore.EncoderConfig{
+			MessageKey: "message",
+
+			LevelKey:    "level",
+			EncodeLevel: zapcore.CapitalLevelEncoder,
+
+			TimeKey:    "time",
+			EncodeTime: zapcore.ISO8601TimeEncoder,
+
+			CallerKey:    "caller",
+			EncodeCaller: zapcore.ShortCallerEncoder,
+		},
+	}
+
+	logger, _ := cfg.Build()
+	defer logger.Sync() // flushes buffer, if any
+
 	mongoURI := os.Getenv("MONGO_URI")
 	mongoName := os.Getenv("MONGO_NAME")
+	port := fmt.Sprintf(":%s", os.Getenv("PORT"))
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err.Error())
 	}
 
-	logger, _ := zap.NewProduction()
-	defer logger.Sync() // flushes buffer, if any
-	sugar := logger.Sugar()
-
-	streamController := NewStreamController(client, mongoName, sugar)
+	streamController := NewStreamController(client, mongoName, logger)
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(Logging(sugar))
+	r.Use(Logging(logger))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
-
+	r.Post("/login", nil)
 	r.Route("/v1", func(v1 chi.Router) {
 		v1.Route("/streams", func(s chi.Router) {
 			s.Route("/{id}", func(sid chi.Router) {
@@ -70,31 +89,31 @@ func main() {
 		})
 	})
 
-	if err := http.ListenAndServe(":7000", r); err != nil {
+	if err := http.ListenAndServe(port, r); err != nil {
 		client.Disconnect(ctx)
-		log.Fatal(err)
+		logger.Fatal(err.Error())
 	}
 }
-func NewStreamController(mongo *mongo.Client, name string, log *zap.SugaredLogger) *StreamController {
+func NewStreamController(mongo *mongo.Client, name string, log *zap.Logger) *StreamController {
+	collection := mongo.Database(name).Collection("streams")
 	return &StreamController{
-		DB:     mongo,
-		DBname: name,
-		logger: log,
+		streamCollection: collection,
+		logger:           log,
 	}
 }
-func Logging(l *zap.SugaredLogger) func(next http.Handler) http.Handler {
+func Logging(l *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			defer func() {
-				l.Infow("Served",
-					"ip_address", r.RemoteAddr,
-					"protocol_version", r.Proto,
-					"request_method", r.Method,
-					"path", r.URL.Path,
-					"status", ww.Status(),
-					"size", ww.BytesWritten(),
-					"reqId", middleware.GetReqID(r.Context()))
+				l.Info("Served",
+					zap.String("ip_address", r.RemoteAddr),
+					zap.String("protocol_version", r.Proto),
+					zap.String("request_method", r.Method),
+					zap.String("path", r.URL.Path),
+					zap.Int("status", ww.Status()),
+					zap.Int("size", ww.BytesWritten()),
+					zap.String("reqId", middleware.GetReqID(r.Context())))
 			}()
 
 			next.ServeHTTP(ww, r)
@@ -103,14 +122,13 @@ func Logging(l *zap.SugaredLogger) func(next http.Handler) http.Handler {
 	}
 }
 
-func (jc *StreamController) StreamCtx(next http.Handler) http.Handler {
+func (s *StreamController) StreamCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		streamID := chi.URLParam(r, "id")
-		collection := jc.DB.Database(jc.DBname).Collection("streams")
 		ctx, _ := context.WithTimeout(r.Context(), 5*time.Second)
-		size, err := collection.CountDocuments(ctx, bson.M{"_id": streamID})
+		size, err := s.streamCollection.CountDocuments(ctx, bson.M{"_id": streamID})
 		if err != nil {
-			jc.logger.Error(err)
+			s.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
 			return
 		} else if size == 0 {
@@ -121,19 +139,18 @@ func (jc *StreamController) StreamCtx(next http.Handler) http.Handler {
 	})
 }
 
-func (jc *StreamController) GetStream(w http.ResponseWriter, r *http.Request) {
+func (s *StreamController) GetStream(w http.ResponseWriter, r *http.Request) {
 	streamID := chi.URLParam(r, "id")
-	collection := jc.DB.Database(jc.DBname).Collection("streams")
-	ctx, _ := context.WithTimeout(r.Context(), 5*time.Second)
 
 	var stream Stream
-	err := collection.FindOne(ctx, bson.M{"_id": streamID}).Decode(&stream)
+	ctx, _ := context.WithTimeout(r.Context(), 5*time.Second)
+	err := s.streamCollection.FindOne(ctx, bson.M{"_id": streamID}).Decode(&stream)
 	if err != nil {
-		jc.logger.Error(err)
+		s.logger.Error(err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	ads, err := getAds(os.Getenv("ADS_URL")+streamID, jc.logger)
+	ads, err := getAds(os.Getenv("ADS_URL")+streamID, s.logger)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
 		return
@@ -152,7 +169,7 @@ func (s Stream) toJson() json.RawMessage {
 	updatedCaption := strings.Replace(streamStr[idEnd+streamUrlEnd+1:ads], "/", `\/`, -1)
 	return json.RawMessage(streamStr[:idEnd+streamUrlEnd+1] + updatedCaption + streamStr[ads:])
 }
-func getAds(url string, logger *zap.SugaredLogger) (json.RawMessage, error) {
+func getAds(url string, logger *zap.Logger) (json.RawMessage, error) {
 	var ads json.RawMessage
 
 	spaceClient := http.Client{
@@ -161,17 +178,17 @@ func getAds(url string, logger *zap.SugaredLogger) (json.RawMessage, error) {
 
 	res, getErr := spaceClient.Get(url)
 	if getErr != nil {
-		logger.Error(getErr)
+		logger.Error(getErr.Error())
 		return ads, getErr
 	} else if res.StatusCode >= 400 {
 		getErr = errors.New(fmt.Sprintf("Returned %d from %s", res.StatusCode, url))
-		logger.Error(getErr)
+		logger.Error(getErr.Error())
 		return ads, getErr
 	}
 
 	err := json.NewDecoder(res.Body).Decode(&ads)
 	if err != nil {
-		logger.Error(err)
+		logger.Error(err.Error())
 		return ads, err
 	}
 

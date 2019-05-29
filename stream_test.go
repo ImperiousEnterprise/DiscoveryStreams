@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,29 +17,45 @@ import (
 	"time"
 )
 
-var sugar *zap.SugaredLogger
+var logger *zap.Logger
 
 func TestMain(m *testing.M) {
 	dockerEnabled := os.Getenv("DOCKER_TEST")
-	fmt.Println(dockerEnabled)
+
 	if dockerEnabled != "true" {
 		os.Setenv("MONGO_URI", "mongodb://localhost:5002")
-		os.Setenv("MONGO_NAME", "reach-engine")
+		os.Setenv("MONGO_NAME", "discovery")
 		os.Setenv("ADS_URL", "https://coding-challenge.dsc.tv/v1/ads/")
 	}
-	logger, _ := zap.NewProduction()
+	rawJSON := []byte(`{
+	  "level": "debug",
+	  "encoding": "json",
+	  "outputPaths": ["stdout"],
+	  "errorOutputPaths": ["stderr"],
+	  "encoderConfig": {
+	    "messageKey": "message",
+	    "levelKey": "level",
+	    "levelEncoder": "lowercase"
+	  }
+	}`)
+
+	var cfg zap.Config
+	if err := json.Unmarshal(rawJSON, &cfg); err != nil {
+		panic(err)
+	}
+	logger, _ = cfg.Build()
 	defer logger.Sync() // flushes buffer, if any
-	sugar = logger.Sugar()
 	code := m.Run()
 	os.Exit(code)
 }
+
 func TestStreamController_GetStreamGood(t *testing.T) {
 	client, err := getMongoDBClient()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), sugar)
+	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), logger)
 
 	r := chi.NewRouter()
 
@@ -62,7 +79,7 @@ func TestStreamController_GetStreamNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), sugar)
+	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), logger)
 
 	r := chi.NewRouter()
 
@@ -91,7 +108,7 @@ func TestStreamController_GetStreamAdsServiceDown(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), sugar)
+	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), logger)
 
 	r := chi.NewRouter()
 
@@ -115,7 +132,7 @@ func TestStreamController_GetStreamDatabaseDown(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), sugar)
+	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), logger)
 	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 	client.Disconnect(ctx)
 
@@ -141,7 +158,7 @@ func TestStreamController_GetStreamDatabaseNameMissing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	streamController := NewStreamController(client, "", sugar)
+	streamController := NewStreamController(client, "", logger)
 
 	r := chi.NewRouter()
 

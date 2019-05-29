@@ -1,7 +1,7 @@
 version: '3.7'
 
 networks:
-  integration-tests-example-test:
+  test:
     driver: bridge
 
 services:
@@ -11,27 +11,42 @@ services:
       context: .
       dockerfile: ./Dockerfile.go.test
     environment:
-      - MONGO_URI=mongodb://mongo:27017
-      - MONGO_NAME=reach-engine
+      - MONGO_URI=mongodb://mongo_test:27017
+      - MONGO_NAME=discovery
       - ADS_URL=https://coding-challenge.dsc.tv/v1/ads/
       - DOCKER_TEST=true
-    volumes:
-      - C:\Users\Mr.F\go\src\DiscoveryStreams:/go/src/github.com/discoveryStream
     depends_on:
-      - mongo
+      - mongo_test
     networks:
-      - integration-tests-example-test
-  mongo:
-    container_name: mongoTests
+      - test
+  mongo_test:
+    container_name: mongo_test
     build:
       context: ./mongo
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.test
+    environment:
+      - MONGO_INITDB_DATABASE=discovery
+    volumes:
+      - db_data:/data/db
+    logging:
+      driver: none
     ports:
       - "5002:27017"
-    logging:
-      driver: "none"
     expose:
      - "27017"
     restart: on-failure
     networks:
-      - integration-tests-example-test
+      - test
+#  mongo-seed:
+#    container_name: mongo-seed
+#    build:
+#      context: ./mongo-seed
+#      dockerfile: Dockerfile.test
+#    links:
+#      - mongo_test
+#    networks:
+#      - test
+
+volumes:
+  db_data:
+    name: mongo_data
