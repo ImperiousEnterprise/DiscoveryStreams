@@ -1,207 +1,163 @@
 package main
 
 import (
+	"DiscoveryStreams/api"
+	"DiscoveryStreams/test_utilities"
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.uber.org/zap"
-	"io"
-	"io/ioutil"
-	"net/http"
+	"github.com/go-chi/jwtauth"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 )
 
-var logger *zap.Logger
+var client, _ = test_utilities.GetMongoDBClient()
 
-func TestMain(m *testing.M) {
-	dockerEnabled := os.Getenv("DOCKER_TEST")
+func TestStreamController_GetStream_Good(t *testing.T) {
+	tools := test_utilities.TestSetup()
+	streamController := api.NewStreamController(client.Database(os.Getenv("MONGO_DB_NAME")), tools)
 
-	if dockerEnabled != "true" {
-		os.Setenv("MONGO_URI", "mongodb://localhost:5002")
-		os.Setenv("MONGO_NAME", "discovery")
-		os.Setenv("ADS_URL", "https://coding-challenge.dsc.tv/v1/ads/")
-	}
-	rawJSON := []byte(`{
-	  "level": "debug",
-	  "encoding": "json",
-	  "outputPaths": ["stdout"],
-	  "errorOutputPaths": ["stderr"],
-	  "encoderConfig": {
-	    "messageKey": "message",
-	    "levelKey": "level",
-	    "levelEncoder": "lowercase"
-	  }
-	}`)
+	testToken := test_utilities.GenerateFakeTestToken()
+	chiRouter := chi.NewRouter()
 
-	var cfg zap.Config
-	if err := json.Unmarshal(rawJSON, &cfg); err != nil {
-		panic(err)
-	}
-	logger, _ = cfg.Build()
-	defer logger.Sync() // flushes buffer, if any
-	code := m.Run()
-	os.Exit(code)
-}
-
-func TestStreamController_GetStreamGood(t *testing.T) {
-	client, err := getMongoDBClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), logger)
-
-	r := chi.NewRouter()
-
-	r.Route("/v1/streams", func(v1 chi.Router) {
-		v1.Route("/{id}", func(sid chi.Router) {
-			sid.Use(streamController.StreamCtx)
-			sid.Get("/", streamController.GetStream)
+	chiRouter.Group(func(guarded chi.Router) {
+		guarded.Use(VerifyJWT(tools, jwtauth.New("HS256", []byte(os.Getenv("TOKEN_SECRET")), nil)))
+		guarded.Route("/v1", func(v1 chi.Router) {
+			v1.Route("/streams", func(s chi.Router) {
+				s.Route("/{id}", func(sid chi.Router) {
+					sid.Get("/", streamController.GetStream)
+				})
+			})
 		})
 	})
 
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(chiRouter)
 	defer ts.Close()
 
-	if _, body := testRequest(t, ts, "GET", "/v1/streams/5938b99cb6906eb1fbaf1f1c", nil); body != goodCase {
+	if _, body := test_utilities.TestRequest(t, ts, "GET", "/v1/streams/5938b99cb6906eb1fbaf1f1c", nil, testToken); body != goodCase {
 		t.Fatalf(body)
 	}
 }
-func TestStreamController_GetStreamNotFound(t *testing.T) {
-	client, err := getMongoDBClient()
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestStreamController_GetStream_NotFound(t *testing.T) {
+	tools := test_utilities.TestSetup()
+	streamController := api.NewStreamController(client.Database(os.Getenv("MONGO_DB_NAME")), tools)
 
-	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), logger)
+	testToken := test_utilities.GenerateFakeTestToken()
+	chiRouter := chi.NewRouter()
 
-	r := chi.NewRouter()
-
-	r.Route("/v1/streams", func(v1 chi.Router) {
-		v1.Route("/{id}", func(sid chi.Router) {
-			sid.Use(streamController.StreamCtx)
-			sid.Get("/", streamController.GetStream)
+	chiRouter.Group(func(guarded chi.Router) {
+		guarded.Use(VerifyJWT(tools, jwtauth.New("HS256", []byte(os.Getenv("TOKEN_SECRET")), nil)))
+		guarded.Route("/v1", func(v1 chi.Router) {
+			v1.Route("/streams", func(s chi.Router) {
+				s.Route("/{id}", func(sid chi.Router) {
+					sid.Get("/", streamController.GetStream)
+				})
+			})
 		})
 	})
-
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(chiRouter)
 	defer ts.Close()
 
-	if resp, _ := testRequest(t, ts, "GET", "/v1/streams/59", nil); resp.StatusCode != 404 {
+	if resp, _ := test_utilities.TestRequest(t, ts, "GET", "/v1/streams/59", nil, testToken); resp.StatusCode != 404 {
 		t.Fatalf(resp.Status)
 	}
 
-	if resp, _ := testRequest(t, ts, "GET", "/v1/streams/", nil); resp.StatusCode != 404 {
+	if resp, _ := test_utilities.TestRequest(t, ts, "GET", "/v1/streams/", nil, testToken); resp.StatusCode != 404 {
 		t.Fatalf(resp.Status)
 	}
 }
-func TestStreamController_GetStreamAdsServiceDown(t *testing.T) {
+func TestStreamController_GetStream_AdsServiceDown(t *testing.T) {
 	os.Setenv("ADS_URL", "http://localhost:9000/")
-	client, err := getMongoDBClient()
-	if err != nil {
-		t.Fatal(err)
-	}
+	tools := test_utilities.TestSetup()
+	streamController := api.NewStreamController(client.Database(os.Getenv("MONGO_DB_NAME")), tools)
 
-	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), logger)
+	testToken := test_utilities.GenerateFakeTestToken()
+	chiRouter := chi.NewRouter()
 
-	r := chi.NewRouter()
-
-	r.Route("/v1/streams", func(v1 chi.Router) {
-		v1.Route("/{id}", func(sid chi.Router) {
-			sid.Use(streamController.StreamCtx)
-			sid.Get("/", streamController.GetStream)
+	chiRouter.Group(func(guarded chi.Router) {
+		guarded.Use(VerifyJWT(tools, jwtauth.New("HS256", []byte(os.Getenv("TOKEN_SECRET")), nil)))
+		guarded.Route("/v1", func(v1 chi.Router) {
+			v1.Route("/streams", func(s chi.Router) {
+				s.Route("/{id}", func(sid chi.Router) {
+					sid.Get("/", streamController.GetStream)
+				})
+			})
 		})
 	})
 
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(chiRouter)
 	defer ts.Close()
 
-	if resp, _ := testRequest(t, ts, "GET", "/v1/streams/5938b99cb6906eb1fbaf1f1c", nil); resp.StatusCode != 503 {
-		t.Fatalf(fmt.Sprintf("%d", resp.StatusCode))
+	if resp, _ := test_utilities.TestRequest(t, ts, "GET", "/v1/streams/5938b99cb6906eb1fbaf1f1e", nil, testToken); resp.StatusCode != 503 {
+		t.Fatalf(fmt.Sprintf("%d was returned instead of 503", resp.StatusCode))
 	}
 }
-func TestStreamController_GetStreamDatabaseDown(t *testing.T) {
-	client, err := getMongoDBClient()
+func TestStreamController_GetStream_DatabaseDown(t *testing.T) {
+	//Flushing redis cache before start of test
+	err := test_utilities.FlushRedis()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-
-	streamController := NewStreamController(client, os.Getenv("MONGO_NAME"), logger)
+	mongo, _ := test_utilities.GetMongoDBClient()
+	tools := test_utilities.TestSetup()
+	streamController := api.NewStreamController(mongo.Database(os.Getenv("MONGO_DB_NAME")), tools)
 	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
-	client.Disconnect(ctx)
+	_ = mongo.Disconnect(ctx)
 
-	r := chi.NewRouter()
+	testToken := test_utilities.GenerateFakeTestToken()
+	chiRouter := chi.NewRouter()
 
-	r.Route("/v1/streams", func(v1 chi.Router) {
-		v1.Route("/{id}", func(sid chi.Router) {
-			sid.Use(streamController.StreamCtx)
-			sid.Get("/", streamController.GetStream)
+	chiRouter.Group(func(guarded chi.Router) {
+		guarded.Use(VerifyJWT(tools, jwtauth.New("HS256", []byte(os.Getenv("TOKEN_SECRET")), nil)))
+		guarded.Route("/v1", func(v1 chi.Router) {
+			v1.Route("/streams", func(s chi.Router) {
+				s.Route("/{id}", func(sid chi.Router) {
+					sid.Get("/", streamController.GetStream)
+				})
+			})
 		})
 	})
 
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(chiRouter)
 	defer ts.Close()
 
-	if resp, _ := testRequest(t, ts, "GET", "/v1/streams/5938b99cb6906eb1fbaf1f1c", nil); resp.StatusCode != 503 {
+	if resp, _ := test_utilities.TestRequest(t, ts, "GET", "/v1/streams/5938b99cb6906eb1fbaf1f1c", nil, testToken); resp.StatusCode != 500 {
 		t.Fatalf(fmt.Sprintf("%d", resp.StatusCode))
 	}
 }
-func TestStreamController_GetStreamDatabaseNameMissing(t *testing.T) {
-	client, err := getMongoDBClient()
+func TestStreamController_GetStream_DatabaseNameMissing(t *testing.T) {
+	//Flushing redis cache before start of test
+	err := test_utilities.FlushRedis()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
+	mongo, _ := test_utilities.GetMongoDBClient()
+	tools := test_utilities.TestSetup()
 
-	streamController := NewStreamController(client, "", logger)
+	streamController := api.NewStreamController(mongo.Database(os.Getenv("")), tools)
+	testToken := test_utilities.GenerateFakeTestToken()
+	dbnamemissing := chi.NewRouter()
 
-	r := chi.NewRouter()
-
-	r.Route("/v1/streams", func(v1 chi.Router) {
-		v1.Route("/{id}", func(sid chi.Router) {
-			sid.Use(streamController.StreamCtx)
-			sid.Get("/", streamController.GetStream)
+	dbnamemissing.Group(func(guarded chi.Router) {
+		guarded.Use(VerifyJWT(tools, jwtauth.New("HS256", []byte(os.Getenv("TOKEN_SECRET")), nil)))
+		//guarded.Post("/refresh",usersController.Logout)
+		guarded.Route("/v1", func(v1 chi.Router) {
+			v1.Route("/streams", func(s chi.Router) {
+				s.Route("/{id}", func(sid chi.Router) {
+					sid.Get("/", streamController.GetStream)
+				})
+			})
 		})
 	})
 
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(dbnamemissing)
 	defer ts.Close()
 
-	if resp, _ := testRequest(t, ts, "GET", "/v1/streams/5938b99cb6906eb1fbaf1f1c", nil); resp.StatusCode != 503 {
+	if resp, _ := test_utilities.TestRequest(t, ts, "GET", "/v1/streams/5938b99cb6906eb1fbaf1f1c", nil, testToken); resp.StatusCode != 500 {
 		t.Fatalf(fmt.Sprintf("%d", resp.StatusCode))
 	}
-}
-func getMongoDBClient() (*mongo.Client, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_URI")))
-	return client, err
-}
-func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
-	req, err := http.NewRequest(method, ts.URL+path, body)
-	if err != nil {
-		t.Fatal(err)
-		return nil, ""
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-		return nil, ""
-	}
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-		return nil, ""
-	}
-	defer resp.Body.Close()
-
-	return resp, string(respBody)
 }
 
 const goodCase = `{
