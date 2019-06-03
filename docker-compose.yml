@@ -8,24 +8,26 @@ services:
   api:
     container_name: api
     build:
-      context: .
-      dockerfile: ./Dockerfile.go.prod
+      context: ./
+      dockerfile: Dockerfile.go.prod
     environment:
       - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_NAME=discovery
+      - MONGO_DB_NAME=discovery
       - ADS_URL=https://coding-challenge.dsc.tv/v1/ads/
+      - REDIS_ADDRESS=redis:6379
+      - TOKEN_SECRET=itsasecret
       - PORT=7000
     ports:
       - "7000:7000"
     depends_on:
       - mongodb
+      - redis
     networks:
       - prod-network
   mongodb:
     container_name: mongodb
     build:
-      context: ./mongo
-      dockerfile: Dockerfile
+      context: build/mongo
     ports:
       - "5001:27017"
     expose:
@@ -35,10 +37,24 @@ services:
       - prod-network
     volumes:
       - mongo_prod:/data/db
-
+  redis:
+    container_name: redis
+    build:
+      context: build/redis
+    ports:
+      - "6001:6379"
+    expose:
+      - "6379"
+    restart: on-failure
+    networks:
+      - prod-network
+    volumes:
+      - redis_prod:/bitnami/redis/data
 
 volumes:
   mongo_prod:
-    name: mongo_prod
+    name: mongo_prod_data
+  redis_prod:
+    name: redis_prod_data
   api_prod:
-    name: api_data
+    name: api_prod_data

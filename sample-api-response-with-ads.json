@@ -1,0 +1,127 @@
+{
+  "id": "5938b99cb6906eb1fbaf1f1c",
+  "streamUrl": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8",
+  "captions": {
+    "vtt": {
+      "en": "https:\/\/captionslocation.com\/0123456789\/captions.vtt"
+    },
+    "scc": {
+      "en": "https:\/\/captionslocation.com\/0123456789\/captions.scc"
+    }
+  },
+  "ads": {
+    "breakOffsets": [
+      {
+        "index": 0,
+        "timeOffset": 0
+      },
+      {
+        "index": 1,
+        "timeOffset": 553.07
+      },
+      {
+        "index": 2,
+        "timeOffset": 1212.0304583333
+      }
+    ],
+    "breaks": [
+      {
+        "ads": [
+          
+        ],
+        "breakId": "0.0.0.125406899",
+        "duration": 0,
+        "events": {
+          "impressions": [
+            "http:\/\/some-ad-server.com\/ad\/l\/1"
+          ]
+        },
+        "position": "preroll",
+        "timeOffset": 0,
+        "type": "linear"
+      },
+      {
+        "ads": [
+          {
+            "creative": "abcd1234",
+            "duration": 30,
+            "events": {
+              "impressions": [
+                "http:\/\/some-ad-server.com\/ad\/l\/1"
+              ]
+            }
+          },
+          {
+            "creative": "abcd1235",
+            "duration": 40,
+            "events": {
+              "impressions": [
+                "http:\/\/some-ad-server.com\/ad\/l\/1"
+              ]
+            }
+          },
+          {
+            "creative": "abcd1236",
+            "duration": 20,
+            "events": {
+              "impressions": [
+                "http:\/\/some-ad-server.com\/ad\/l\/1"
+              ]
+            }
+          }
+        ],
+        "breakId": "mid0",
+        "duration": 90,
+        "events": {
+          "impressions": [
+            "http:\/\/some-ad-server.com\/ad\/l\/1"
+          ]
+        },
+        "position": "midroll",
+        "timeOffset": 553.07,
+        "type": "linear"
+      },
+      {
+        "ads": [
+          {
+            "creative": "abcd1237",
+            "duration": 10,
+            "events": {
+              "impressions": [
+                "http:\/\/some-ad-server.com\/ad\/l\/1"
+              ]
+            }
+          },
+          {
+            "creative": "abcd1238",
+            "duration": 20,
+            "events": {
+              "impressions": [
+                "http:\/\/some-ad-server.com\/ad\/l\/1"
+              ]
+            }
+          },
+          {
+            "creative": "abcd1239",
+            "duration": 30,
+            "events": {
+              "impressions": [
+                "http:\/\/some-ad-server.com\/ad\/l\/1"
+              ]
+            }
+          }
+        ],
+        "breakId": "mid1",
+        "duration": 60,
+        "events": {
+          "impressions": [
+            "http:\/\/some-ad-server.com\/ad\/l\/1"
+          ]
+        },
+        "position": "midroll",
+        "timeOffset": 1212.0304583333,
+        "type": "linear"
+      }
+    ]
+  }
+}

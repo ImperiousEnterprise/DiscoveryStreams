@@ -8,8 +8,8 @@ services:
   api_tests:
     container_name: api_tests
     build:
-      context: .
-      dockerfile: ./Dockerfile.go.test
+      context: ""
+      dockerfile: Dockerfile.go.test
     environment:
       - MONGO_URI=mongodb://mongo_test:27017
       - MONGO_NAME=discovery
@@ -22,7 +22,7 @@ services:
   mongo_test:
     container_name: mongo_test
     build:
-      context: ./mongo
+      context: build/mongo
       dockerfile: Dockerfile.test
     environment:
       - MONGO_INITDB_DATABASE=discovery
@@ -37,16 +37,7 @@ services:
     restart: on-failure
     networks:
       - test
-#  mongo-seed:
-#    container_name: mongo-seed
-#    build:
-#      context: ./mongo-seed
-#      dockerfile: Dockerfile.test
-#    links:
-#      - mongo_test
-#    networks:
-#      - test
 
 volumes:
   db_data:
-    name: mongo_data
+    name: mongo_test_data

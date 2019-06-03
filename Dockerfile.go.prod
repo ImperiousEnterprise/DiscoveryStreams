@@ -5,12 +5,14 @@ FROM golang:1.12-alpine AS builder
 RUN apk update && apk add --no-cache git curl
 
 WORKDIR /go/src/DiscoveryStreams
-COPY main.go main.go
+COPY main.go ./main.go
+COPY ./api ./api
+COPY ./config ./config
+COPY ./internals ./internals
+COPY stream_test.go stream_test.go
 COPY Gopkg.toml Gopkg.toml
 COPY banner.txt banner.txt
 # Fetch dependencies.
-
-# Using go get.
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh && dep ensure
 
 # Build the binary.

@@ -7,8 +7,7 @@ RUN set -ex; \
 
 # Set working directory
 WORKDIR /go/src/github.com/discoveryStream/
-COPY main.go main.go
-COPY stream_test.go stream_test.go
+COPY *.go *.go
 COPY Gopkg.toml Gopkg.toml
 COPY banner.txt banner.txt
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh && dep ensure
