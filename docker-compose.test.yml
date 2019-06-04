@@ -8,36 +8,51 @@ services:
   api_tests:
     container_name: api_tests
     build:
-      context: ""
+      context: ./
       dockerfile: Dockerfile.go.test
     environment:
       - MONGO_URI=mongodb://mongo_test:27017
-      - MONGO_NAME=discovery
+      - MONGO_DB_NAME=discovery
       - ADS_URL=https://coding-challenge.dsc.tv/v1/ads/
-      - DOCKER_TEST=true
+      - REDIS_ADDRESS=redis_test:6379
+      - TOKEN_SECRET=itsasecret
+      - PORT=7000
     depends_on:
       - mongo_test
+      - redis_test
     networks:
       - test
   mongo_test:
     container_name: mongo_test
     build:
       context: build/mongo
-      dockerfile: Dockerfile.test
-    environment:
-      - MONGO_INITDB_DATABASE=discovery
     volumes:
-      - db_data:/data/db
+      - mongo_test_data:/data/db
     logging:
       driver: none
-    ports:
-      - "5002:27017"
     expose:
      - "27017"
     restart: on-failure
     networks:
       - test
+  redis_test:
+    container_name: redis_test
+    build:
+      context: build/redis
+    expose:
+    - "6379"
+    restart: on-failure
+    logging:
+      driver: none
+    networks:
+    - test
+    volumes:
+    - redis_test_data:/data
 
 volumes:
-  db_data:
+  mongo_test_data:
     name: mongo_test_data
+  redis_test_data:
+    name: redis_test_data
+  api_test_data:
+    name: api_test_data

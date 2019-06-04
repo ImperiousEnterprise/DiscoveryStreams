@@ -59,7 +59,7 @@ func (u *User) validate() []error {
 
 	if u.Password == "" {
 		error = append(error, errors.New("password is required"))
-	} else if len(u.Password) < 6 {
+	} else if len(u.Password) < 5 {
 		error = append(error, errors.New("password needs to be more than 6 characters"))
 	}
 

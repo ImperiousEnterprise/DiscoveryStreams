@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/go-chi/chi"
 	"github.com/go-redis/redis"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
@@ -19,9 +19,6 @@ import (
 	"time"
 )
 
-var chiRouter *chi.Mux
-var testToken string
-var client *mongo.Client
 var tools *config.Tools
 
 func TestSetup() *config.Tools {
@@ -62,7 +59,7 @@ func GenerateFakeTestToken() string {
 		"firstname": "Mister",
 		"lastname":  "Test",
 		"wholename": "Mister" + " " + "Test",
-		"jti":       "123",
+		"jti":       uuid.New().String(),
 	})
 
 	tokenString, _ := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
@@ -84,7 +81,10 @@ func TestRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 		t.Fatal(err)
 		return nil, ""
 	}
-	req.Header.Set("Authorization", "BEARER "+token)
+	if token != "" {
+		req.Header.Set("Authorization", "BEARER "+token)
+	}
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

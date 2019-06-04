@@ -13,9 +13,11 @@ import (
 	"time"
 )
 
-var client, _ = test_utilities.GetMongoDBClient()
-
 func TestStreamController_GetStream_Good(t *testing.T) {
+	client, err := test_utilities.GetMongoDBClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 	tools := test_utilities.TestSetup()
 	streamController := api.NewStreamController(client.Database(os.Getenv("MONGO_DB_NAME")), tools)
 
@@ -41,6 +43,10 @@ func TestStreamController_GetStream_Good(t *testing.T) {
 	}
 }
 func TestStreamController_GetStream_NotFound(t *testing.T) {
+	client, err := test_utilities.GetMongoDBClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 	tools := test_utilities.TestSetup()
 	streamController := api.NewStreamController(client.Database(os.Getenv("MONGO_DB_NAME")), tools)
 
@@ -70,6 +76,10 @@ func TestStreamController_GetStream_NotFound(t *testing.T) {
 }
 func TestStreamController_GetStream_AdsServiceDown(t *testing.T) {
 	os.Setenv("ADS_URL", "http://localhost:9000/")
+	client, err := test_utilities.GetMongoDBClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 	tools := test_utilities.TestSetup()
 	streamController := api.NewStreamController(client.Database(os.Getenv("MONGO_DB_NAME")), tools)
 
@@ -100,11 +110,14 @@ func TestStreamController_GetStream_DatabaseDown(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	mongo, _ := test_utilities.GetMongoDBClient()
+	client, err := test_utilities.GetMongoDBClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 	tools := test_utilities.TestSetup()
-	streamController := api.NewStreamController(mongo.Database(os.Getenv("MONGO_DB_NAME")), tools)
+	streamController := api.NewStreamController(client.Database(os.Getenv("MONGO_DB_NAME")), tools)
 	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
-	_ = mongo.Disconnect(ctx)
+	_ = client.Disconnect(ctx)
 
 	testToken := test_utilities.GenerateFakeTestToken()
 	chiRouter := chi.NewRouter()
@@ -133,10 +146,15 @@ func TestStreamController_GetStream_DatabaseNameMissing(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	mongo, _ := test_utilities.GetMongoDBClient()
+
+	client, err := test_utilities.GetMongoDBClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tools := test_utilities.TestSetup()
 
-	streamController := api.NewStreamController(mongo.Database(os.Getenv("")), tools)
+	streamController := api.NewStreamController(client.Database(os.Getenv("")), tools)
 	testToken := test_utilities.GenerateFakeTestToken()
 	dbnamemissing := chi.NewRouter()
 

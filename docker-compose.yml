@@ -49,7 +49,7 @@ services:
     networks:
       - prod-network
     volumes:
-      - redis_prod:/bitnami/redis/data
+      - redis_prod:/data
 
 volumes:
   mongo_prod:

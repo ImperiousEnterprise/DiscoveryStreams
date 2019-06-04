@@ -39,7 +39,7 @@ func main() {
 	//JWT protected routes
 	r.Group(func(guarded chi.Router) {
 		guarded.Use(VerifyJWT(tools, tokenAuth))
-		guarded.Post("/logout", usersController.Logout)
+		guarded.Delete("/logout", usersController.Logout)
 		guarded.Route("/v1", func(v1 chi.Router) {
 			v1.Route("/streams", func(s chi.Router) {
 				s.Route("/{id}", func(sid chi.Router) {

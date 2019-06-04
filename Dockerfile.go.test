@@ -6,8 +6,14 @@ RUN set -ex; \
     apk add --no-cache git curl
 
 # Set working directory
-WORKDIR /go/src/github.com/discoveryStream/
-COPY *.go *.go
+WORKDIR /go/src/DiscoveryStreams
+COPY main.go ./main.go
+COPY ./api ./api
+COPY ./config ./config
+COPY ./internals ./internals
+COPY ./test_utilities ./test_utilities
+COPY stream_test.go stream_test.go
+COPY user_test.go user_test.go
 COPY Gopkg.toml Gopkg.toml
 COPY banner.txt banner.txt
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh && dep ensure
