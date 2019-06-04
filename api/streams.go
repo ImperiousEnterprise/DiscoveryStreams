@@ -49,6 +49,32 @@ func NewStreamController(mongo *mongo.Database, tools *config.Tools) *StreamCont
 	}
 }
 
+func (s *StreamController) ListStreamIds(w http.ResponseWriter, r *http.Request) {
+	ctx, _ := context.WithTimeout(r.Context(), 5*time.Second)
+	results, err := s.streamCollection.Distinct(ctx, "_id", bson.D{})
+
+	if err == mongo.ErrNoDocuments {
+		internals.RespondAsErrorJson(w, http.StatusNotFound, internals.NoStreamError)
+		return
+	} else if err != nil {
+		s.Logger.Error("mongo returned "+err.Error(), zap.String("reqId", middleware.GetReqID(r.Context())))
+		internals.RespondAsErrorJson(w, http.StatusInternalServerError, internals.DBError)
+		return
+	}
+
+	var IdWrapper struct {
+		Ids []string `json:"ids"`
+	}
+	for _, res := range results {
+		IdWrapper.Ids = append(IdWrapper.Ids, res.(string))
+	}
+
+	ids, _ := json.Marshal(IdWrapper)
+
+	internals.RespondAsJson(w, ids, http.StatusOK)
+
+}
+
 //Stream Controller's Get method that's responsible for getting stream id
 // data from mongo and ad url endpoint.
 func (s *StreamController) GetStream(w http.ResponseWriter, r *http.Request) {

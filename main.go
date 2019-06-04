@@ -42,6 +42,7 @@ func main() {
 		guarded.Delete("/logout", usersController.Logout)
 		guarded.Route("/v1", func(v1 chi.Router) {
 			v1.Route("/streams", func(s chi.Router) {
+				s.Get("/", streamController.ListStreamIds)
 				s.Route("/{id}", func(sid chi.Router) {
 					sid.Get("/", streamController.GetStream)
 				})

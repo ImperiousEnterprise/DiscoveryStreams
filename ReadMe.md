@@ -11,10 +11,12 @@ POST /signup - Sign Up to get access to service
 POST /login - Provides a JWT token to make api requests to Stream Endpoint
 DELETE /logout - Invalidates JWT token 
 GET /v1/streams/{streamID} - Get Stream Data
+GET /v1/streams - Lists all StreamID's
 ```
 
 * On /login the jwt token will be returned not in the response body but in the Authorization Header
 * All endpoints besides login and signup require a token to access data
+* JWT tokens are good for 1 hour
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
@@ -111,23 +113,23 @@ curl -v -X POST \
 ```
 curl -X GET \
   http://localhost:7000/v1/streams/5938b99cb6906eb1fbaf1f1d \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFiQGV4YW1wbGUuY29tIiwiZXhwIjoxNTU5NjE0NDkwLCJmaXJzdG5hbWUiOiJhdGVsIiwiaWF0IjoxNTU5NjEwODkwLCJqdGkiOiI1ZTcxOGRlMi05NTk3LTRmZWMtOGY0Ni1jMjFmZDM1OGRhNGYiLCJsYXN0bmFtZSI6InNtaXRoIiwid2hvbGVuYW1lIjoiYXRlbCBzbWl0aCJ9.j9GmhR0LXH0jc4qEC6t3UnAzfaZfbrcmkalh1_RGXUM'
+  -H 'Authorization: Bearer <replace_with_token_from_login_api>'
 ```
 
 4.) /logout
 ```
 curl -X DELETE \
   http://localhost:7000/logout \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFiQGV4YW1wbGUuY29tIiwiZXhwIjoxNTU5NjE0NDkwLCJmaXJzdG5hbWUiOiJhdGVsIiwiaWF0IjoxNTU5NjEwODkwLCJqdGkiOiI1ZTcxOGRlMi05NTk3LTRmZWMtOGY0Ni1jMjFmZDM1OGRhNGYiLCJsYXN0bmFtZSI6InNtaXRoIiwid2hvbGVuYW1lIjoiYXRlbCBzbWl0aCJ9.j9GmhR0LXH0jc4qEC6t3UnAzfaZfbrcmkalh1_RGXUM'
-```
+  -H 'Authorization: Bearer <replace_with_token_from_login_api>'
+  ```
 
 ## Running tests
 
 Integration tests are ran in docker containers
-
 ```
 docker-compose -f docker-compose.test.yml up --abort-on-container-exit
 ```
+
 After the test run docker takes down the containers.
 
 
@@ -145,6 +147,6 @@ After the test run docker takes down the containers.
 
 
 
-#Etc..
+# Etc..
 
 1.) If mongodb name will be changed be sure to update ```MONGO_DB_NAME``` as well as the import.sh under ```/build/mongo```
