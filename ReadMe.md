@@ -29,13 +29,13 @@ What things you need to install:
 [Docker](https://www.docker.com/products/docker-desktop) - Tool for application containerization
 
 
-### Installing
+## Installing
 
 ```
 git clone https://github.com/ImperiousEnterprise/DiscoveryStream.git (clone to $GOPATH/src)
 ```
 
-### Running the application
+## Running the application
 
 #### With Dockers
 
@@ -141,10 +141,6 @@ After the test run docker takes down the containers.
 * [jwtauth](https://github.com/go-chi/jwtauth) - JWT authentication middleware for go-chi
 * [mongo-go-driver](https://github.com/mongo-go-driver) - Mongo db driver for golang
 * [go-redis](https://github.com/go-redis/redis) - Redis driver for golang
-
-## Contributing
-
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
 
 ## Author
 
