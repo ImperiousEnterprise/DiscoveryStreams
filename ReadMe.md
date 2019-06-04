@@ -109,7 +109,14 @@ curl -v -X POST \
 }'
 ```
 
-3.) /v1/streams/{streamID}
+3.) /v1/streams
+```
+curl -X GET \
+  http://localhost:7000/v1/streams \
+  -H 'Authorization: Bearer <replace_with_token_from_login_api>'
+```
+
+4.) /v1/streams/{streamID}
 ```
 curl -X GET \
   http://localhost:7000/v1/streams/5938b99cb6906eb1fbaf1f1d \
