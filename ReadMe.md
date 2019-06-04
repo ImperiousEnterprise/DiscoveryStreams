@@ -41,14 +41,11 @@ git clone https://github.com/ImperiousEnterprise/DiscoveryStream.git (clone to $
 
 1.) Run With Dockers
 ```
- docker-compose up --build -d
+ - docker-compose up --build (start dockers)
+ - Ctrl + C (close dockers)
 ```
 * Once docker is up access the api with http://localhost:7000
 
-2.)  Shutdown with Dockers
-```
-docker-compose down -v
-```
 
 #### Without Dockers
 

@@ -50,6 +50,7 @@ func main() {
 	})
 
 	defer tools.Logger.Sync() //clear logger buffer
+	tools.Logger.Info("Server has started on port " + port)
 	if err := http.ListenAndServe(port, r); err != nil {
 		ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
 		mongo.Disconnect(ctx)

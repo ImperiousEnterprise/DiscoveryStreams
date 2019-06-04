@@ -21,7 +21,7 @@ var TokenNotValidError = errors.New("token no longer valid")
 // returning {"error":[{"message": <error_message>}, {"message": <error_message>}]}
 func errorArrayToJson(err []error, statusCode int) []byte {
 	type Message struct {
-		Message string `json:"message"`
+		Text string `json:"message"`
 	}
 	var Errors struct {
 		Status      int

@@ -54,5 +54,3 @@ volumes:
     name: mongo_test_data
   redis_test_data:
     name: redis_test_data
-  api_test_data:
-    name: api_test_data

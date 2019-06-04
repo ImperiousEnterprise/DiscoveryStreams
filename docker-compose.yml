@@ -37,6 +37,8 @@ services:
       - prod-network
     volumes:
       - mongo_prod:/data/db
+    logging:
+      driver: none
   redis:
     container_name: redis
     build:
@@ -50,11 +52,11 @@ services:
       - prod-network
     volumes:
       - redis_prod:/data
+    logging:
+      driver: none
 
 volumes:
   mongo_prod:
     name: mongo_prod_data
   redis_prod:
     name: redis_prod_data
-  api_prod:
-    name: api_prod_data
