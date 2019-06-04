@@ -20,15 +20,17 @@ var TokenNotValidError = errors.New("token no longer valid")
 //Converts error array to json by
 // returning {"error":[{"message": <error_message>}, {"message": <error_message>}]}
 func errorArrayToJson(err []error, statusCode int) []byte {
-
+	type Message struct {
+		Message string `json:"message"`
+	}
 	var Errors struct {
 		Status      int
-		ErrMessages []string `json:"errors"`
+		ErrMessages []Message `json:"errors"`
 	}
 
 	Errors.Status = statusCode
 	for _, e := range err {
-		Errors.ErrMessages = append(Errors.ErrMessages, fmt.Sprintf(`{"message": "%s"}`, e.Error()))
+		Errors.ErrMessages = append(Errors.ErrMessages, Message{e.Error()})
 	}
 	errorMarshall, _ := json.Marshal(Errors)
 	return errorMarshall
